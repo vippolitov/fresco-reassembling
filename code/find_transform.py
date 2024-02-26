@@ -59,6 +59,10 @@ def estimate_max_squared_transformation_error(line1, line2, trasform_params):
     return np.linalg.norm(line2 - transformed_line1, axis=1).max()
 
 def find_best_transform_ransac(line1, line2):
+    """
+    finds best transform line1 -> line2 using ransac
+    return transform params (cos, sin, x, y)
+    """
     length = min(line1.shape[0], line2.shape[0])
     min_error = 10000
     best_transform = None

@@ -45,22 +45,14 @@ def match_color_score(alpha, beta):
     else:
         return mismatch_penalty
 
-def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2):
+def old_compute_diag_score(curvs1, curvs2, seq1, seq2): # outdated -- saved just in case
     m, n = len(seq1), len(seq2)  # length of two sequences
-    
-    # Generate DP table and traceback path pointer matrix
-    score = np.zeros((m+1, n+1))      # the DP table
-    pointer = np.zeros((m+1, n+1))    # to store the traceback path
-    
-    max_score = 0        # initial maximum score in DP table
-    gap_penalty = -80
-    
     curv_diff = np.abs(curvs1[:, None] + curvs2[None, :])[:,:,0]
     color_diff = norm(seq1[:, None, :] - seq2[None, :, :], axis=2)
-    color_sim = color_diff < 15
+    color_sim = color_diff < 30
     diag_score = np.zeros((m , n))
     
-    diag_score[np.logical_not(color_sim)] = - 30 
+    diag_score[np.logical_not(color_sim)] = - 30
     
     diag_score[np.logical_and(curv_diff < 0.02, color_sim)] = 45
     diag_score[np.logical_and(0.02 < curv_diff, curv_diff < 0.03, color_sim)] = 30
@@ -76,6 +68,67 @@ def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2):
     diag_score[np.logical_and((curvs1 < -0.05)[:, None, 0], (curvs2 > 0.05)[None, :, 0])] = 40
     diag_score[np.logical_and((curvs1 > 0.07)[:, None, 0], (curvs2 < -0.07)[None, :, 0])] = 60
     diag_score[np.logical_and((curvs1 < -0.07)[:, None, 0], (curvs2 > 0.07)[None, :, 0])] = 60
+    
+    
+    return diag_score
+
+def compute_diag_score(curvs1, curvs2, seq1, seq2):
+    """
+    TODO: write docs about scores
+    """
+    print("new diag score is estimated")
+    m, n = len(seq1), len(seq2)  # length of two sequences
+    curv_diff = np.abs(curvs1[:, None] + curvs2[None, :])[:,:,0]
+    curvs1_small = np.abs(curvs1) < 0.03
+    curvs2_small = np.abs(curvs2) < 0.03
+    one_of_curvs_small = np.logical_or(curvs1_small[:, None, 0], curvs2_small[None, :, 0])
+    both_curvs_big = np.logical_not(one_of_curvs_small)
+    
+    color_diff = norm(seq1[:, None, :] - seq2[None, :, :], axis=2)
+    color_sim = color_diff < 30
+    diag_score = np.zeros((m , n))
+    
+    base = 30
+    diag_score[np.logical_not(color_sim)] = -base
+    
+    
+    diag_score[(curv_diff < 0.02) & color_sim & one_of_curvs_small] = base 
+    diag_score[(curv_diff < 0.02) & color_sim & both_curvs_big] = base * 3
+#     diag_score[np.logical_and(curv_diff < 0.02, color_sim)] = base
+    diag_score[(0.02 < curv_diff) & (curv_diff < 0.03) & color_sim & both_curvs_big] = base * 0.5
+    diag_score[(0.03 < curv_diff) & (curv_diff < 0.04) & color_sim] = -base
+    diag_score[(0.03 < curv_diff) & (curv_diff < 0.04) & color_sim & one_of_curvs_small] = -base * 2
+    diag_score[(0.04 < curv_diff) & (curv_diff < 0.05) & color_sim] = -base * 2
+    diag_score[(0.04 < curv_diff) & (curv_diff < 0.05) & color_sim & one_of_curvs_small] = -base * 3
+    diag_score[(0.05 < curv_diff) & (color_sim)] = -base * 4
+    diag_score[(0.05 < curv_diff) & (color_sim & one_of_curvs_small)] = -base * 5
+    
+    diag_score[(0.03 < curv_diff) & (curv_diff < 0.04) & np.logical_not(color_sim)] = - base
+    diag_score[(0.04 < curv_diff) & (curv_diff < 0.05) & np.logical_not(color_sim)] = - base * 2
+    diag_score[(0.05 < curv_diff) & np.logical_not(color_sim)] = - base * 4
+
+    diag_score[(0.05 > curvs1)[:, None, 0] & (curvs1 > 0.03)[:, None, 0] & (-0.05 < curvs2)[None, :, 0] & (curvs2 < -0.03)[None, :, 0]] = base
+    diag_score[(-0.05 < curvs1)[:, None, 0] & (curvs1 < -0.03)[:, None, 0] & (0.05 > curvs2)[None, :, 0] & (curvs2 > 0.03)[None, :, 0]] = base
+    diag_score[(curvs1 > 0.05)[:, None, 0] &(curvs2 < -0.05)[None, :, 0]] = base * 3
+    diag_score[(curvs1 < -0.05)[:, None, 0] & (curvs2 > 0.05)[None, :, 0]] = base * 3
+    diag_score[(curvs1 > 0.07)[:, None, 0] & (curvs2 < -0.07)[None, :, 0]] = base * 4
+    diag_score[(curvs1 < -0.07)[:, None, 0] & (curvs2 > 0.07)[None, :, 0]] = base * 4
+    diag_score[(curv_diff < 0.02) & color_sim & both_curvs_big] = base * 3
+    
+    
+    return diag_score
+
+def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2):
+    m, n = len(seq1), len(seq2)  # length of two sequences
+    
+    # Generate DP table and traceback path pointer matrix
+    score = np.zeros((m+1, n+1))      # the DP table
+    pointer = np.zeros((m+1, n+1))    # to store the traceback path
+    
+    max_score = 0        # initial maximum score in DP table
+    gap_penalty = -160
+    
+    diag_score = compute_diag_score(curvs1, curvs2, seq1, seq2)
     
     
     # Calculate DP table and mark pointers
@@ -199,11 +252,11 @@ def alignment_nms(aligns, edge_coords1, edge_coords2):
     while i < len(aligns):
         j = i + 1
         while j < len(aligns):
-            iou_score = (iou(align_coords1[i], align_coords1[j]) + iou(align_coords2[i], align_coords2[j])) / 2
-            
-#             print(i, '-', j, ':', iou_score)
-            if iou_score > 0.7:
+            iou_score = min(iou(align_coords1[i], align_coords1[j]), iou(align_coords2[i], align_coords2[j]))
+            if iou_score > 0.5:
                 aligns.pop(j)
+                align_coords1.pop(j)
+                align_coords2.pop(j)
             else:
                 j += 1
         i += 1

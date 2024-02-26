@@ -1,2 +1,3 @@
 code/lama/big-lama/models/*
 code/output/*
+code/__pycache__/*
