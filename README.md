@@ -10,8 +10,9 @@ Given set of fragments of destroyed fresco, the aim is to recommend pairs of fra
 3) Slow refining of obtained alignments (looping over coarse estimation neighbourhood and computing different scores for each option)
 4) Filtering false positive predictions (according to triplets formed based on refined pairwise alignments)
 
-## Usage
-Code directory contains several notebooks with examples of code usage. Each notebook has number inside its name, this number corresponds to one of the pipeline stages.
+## Structure ans usage
+Python code is kept in /code/src directory. 
+Directory /code contains several notebooks with examples of src usage. Each notebook has number inside its name, this number corresponds to one of the pipeline stages.
 
 ## Examples
 <p align="center">
