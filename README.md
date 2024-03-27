@@ -4,9 +4,10 @@ This repository contains code that was written as a part of my master's thesis.
 Given set of fragments of destroyed fresco, the aim is to recommend pairs of fragments that can be joint in one one fragment along their common edge.
 
 ## Pipeline
-1) Filtering pairs of fragments that are not similar enough
-2) Fast coarse fragments aligning for each pair of fragments using adopted Longest Common Subsequence searching algorithm
-3) Slow refining of obtained alignments
+0) Preprocessing (extending fragments with inpainting model, computing edge coordinates using Canny, etc.)
+1) Filtering pairs of fragments that are not similar enough (based on color histograms and color quantization using KNN)
+2) Fast coarse fragments aligning for each pair of fragments (using adopted Longest Common Subsequence searching algorithm)
+3) Slow refining of obtained alignments (looping over coarse estimation neighbourhood and computing different scores for each option)
 4) Filtering false positive predictions (according to triplets formed based on refined pairwise alignments)
 
 ## Usage
