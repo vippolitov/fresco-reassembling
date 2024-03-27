@@ -13,3 +13,17 @@ Given set of fragments of destroyed fresco, the aim is to recommend pairs of fra
 Code directory contains several notebooks with examples of code usage. Each notebook has number inside its name, this number corresponds to one of the pipeline stages.
 
 ## Examples
+<p align="center">
+  Example of found common edge of two fragments
+</p>
+<p align="center">
+  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_common_edge.png" with="800">
+</p>
+
+
+<p align="center">
+  Example of found alignment between two fragments
+</p>
+<p align="center">
+  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_refined.png" with="800">
+</p>
