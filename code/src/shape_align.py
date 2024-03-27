@@ -4,11 +4,11 @@ from numpy.linalg import norm
 from tqdm import tqdm
 from typing import List, Tuple, Dict
 from joblib import Parallel, delayed
-from find_transform import aligned_coords2line, find_best_transform_ransac, transform_line
 
-from shape_utils import get_colorized_edge, linearize_edge, ShapeDescriptor
-from curvature import edge_coords2curvatures
-from utils import Fragment
+from src.find_transform import aligned_coords2line, find_best_transform_ransac, transform_line
+from src.shape_utils import get_colorized_edge, linearize_edge, ShapeDescriptor
+from src.curvature import edge_coords2curvatures
+from src.utils import Fragment
 
 class Alignment:
     def __init__(self, indices, conf):
@@ -77,10 +77,48 @@ def compute_diag_score(curvs1, curvs2, seq1, seq2):
     TODO: write docs about scores
     """
     print("new diag score is estimated")
+#     m, n = len(seq1), len(seq2)  # length of two sequences
+#     curv_diff = np.abs(curvs1[:, None] + curvs2[None, :])[:,:,0]
+#     curvs1_small = np.abs(curvs1) < 0.03
+#     curvs2_small = np.abs(curvs2) < 0.03
+#     one_of_curvs_small = np.logical_or(curvs1_small[:, None, 0], curvs2_small[None, :, 0])
+#     both_curvs_big = np.logical_not(one_of_curvs_small)
+    
+#     color_diff = norm(seq1[:, None, :] - seq2[None, :, :], axis=2)
+#     color_sim = color_diff < 30
+#     diag_score = np.zeros((m , n))
+    
+#     base = 30
+#     diag_score[np.logical_not(color_sim)] = -base
+    
+    
+#     diag_score[(curv_diff < 0.02) & color_sim & one_of_curvs_small] = base 
+#     diag_score[(curv_diff < 0.02) & color_sim & both_curvs_big] = base * 3
+# #     diag_score[np.logical_and(curv_diff < 0.02, color_sim)] = base
+#     diag_score[(0.02 < curv_diff) & (curv_diff < 0.03) & color_sim & both_curvs_big] = base * 0.5
+#     diag_score[(0.03 < curv_diff) & (curv_diff < 0.04) & color_sim] = -base
+#     diag_score[(0.03 < curv_diff) & (curv_diff < 0.04) & color_sim & one_of_curvs_small] = -base * 2
+#     diag_score[(0.04 < curv_diff) & (curv_diff < 0.05) & color_sim] = -base * 2
+#     diag_score[(0.04 < curv_diff) & (curv_diff < 0.05) & color_sim & one_of_curvs_small] = -base * 3
+#     diag_score[(0.05 < curv_diff) & (color_sim)] = -base * 4
+#     diag_score[(0.05 < curv_diff) & (color_sim & one_of_curvs_small)] = -base * 5
+    
+#     diag_score[(0.03 < curv_diff) & (curv_diff < 0.04) & np.logical_not(color_sim)] = - base
+#     diag_score[(0.04 < curv_diff) & (curv_diff < 0.05) & np.logical_not(color_sim)] = - base * 2
+#     diag_score[(0.05 < curv_diff) & np.logical_not(color_sim)] = - base * 4
+
+#     diag_score[(0.05 > curvs1)[:, None, 0] & (curvs1 > 0.03)[:, None, 0] & (-0.05 < curvs2)[None, :, 0] & (curvs2 < -0.03)[None, :, 0]] = base
+#     diag_score[(-0.05 < curvs1)[:, None, 0] & (curvs1 < -0.03)[:, None, 0] & (0.05 > curvs2)[None, :, 0] & (curvs2 > 0.03)[None, :, 0]] = base
+#     diag_score[(curvs1 > 0.05)[:, None, 0] &(curvs2 < -0.05)[None, :, 0]] = base * 3
+#     diag_score[(curvs1 < -0.05)[:, None, 0] & (curvs2 > 0.05)[None, :, 0]] = base * 3
+#     diag_score[(curvs1 > 0.07)[:, None, 0] & (curvs2 < -0.07)[None, :, 0]] = base * 4
+#     diag_score[(curvs1 < -0.07)[:, None, 0] & (curvs2 > 0.07)[None, :, 0]] = base * 4
+#     diag_score[(curv_diff < 0.02) & color_sim & both_curvs_big] = base * 3
+    
     m, n = len(seq1), len(seq2)  # length of two sequences
     curv_diff = np.abs(curvs1[:, None] + curvs2[None, :])[:,:,0]
-    curvs1_small = np.abs(curvs1) < 0.03
-    curvs2_small = np.abs(curvs2) < 0.03
+    curvs1_small = np.abs(curvs1) < 0.025
+    curvs2_small = np.abs(curvs2) < 0.025
     one_of_curvs_small = np.logical_or(curvs1_small[:, None, 0], curvs2_small[None, :, 0])
     both_curvs_big = np.logical_not(one_of_curvs_small)
     
@@ -126,7 +164,7 @@ def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2):
     pointer = np.zeros((m+1, n+1))    # to store the traceback path
     
     max_score = 0        # initial maximum score in DP table
-    gap_penalty = -160
+    gap_penalty = -100
     
     diag_score = compute_diag_score(curvs1, curvs2, seq1, seq2)
     
@@ -288,6 +326,15 @@ def backtrace(
             i -= 1
     return np.array(indices)
 
+
+def compute_max_curvatire(indices, dsc1, dsc2):
+    max_curv1, max_curv2 = 0, 0
+    curvs1, curvs2 = np.abs(dsc1.curvatures), np.abs(dsc2.curvatures[::-1])
+    for (i, j) in indices:
+        max_curv1 = max(max_curv1, curvs1[i - 1])
+        max_curv2 = max(max_curv2, curvs2[j - 1])
+    return min(max_curv1, max_curv2)
+
 def generate_multiple_alignments(pointer, score, dsc1, dsc2, blocks_num):
     block_size_y = int(pointer.shape[0] / blocks_num)
     block_size_x = int(pointer.shape[1] / blocks_num)
@@ -302,7 +349,10 @@ def generate_multiple_alignments(pointer, score, dsc1, dsc2, blocks_num):
     for i in range(blocks_num):
         for j in range(blocks_num):
             indices = backtrace(pointer, score, color_edge1, color_edge2[::-1], i, j, block_size_y, block_size_x)
-            if len(indices) < 50:
+            if len(indices) < 50 or (len(indices) / len(edge_coords1) < 0.05 and len(indices) / len(edge_coords2) < 0.05):
+#                 print("Skipping", i, j, len(indices), len(indices) / len(edge_coords1), len(indices) / len(edge_coords2))
+                continue
+            if compute_max_curvatire(indices, dsc1, dsc2) < 0.03:
                 continue
             line1 = aligned_coords2line(indices, edge_coords1, left=True)
             line2 = aligned_coords2line(indices, edge_coords2[::-1], left=False)
@@ -314,6 +364,25 @@ def generate_multiple_alignments(pointer, score, dsc1, dsc2, blocks_num):
     print(len(aligns))
     aligns = alignment_nms(aligns, edge_coords1, edge_coords2)
     print(len(aligns))
+    return aligns
+
+def align_two_frags_with_multiple_aligns(
+        palette,
+          frag1: Fragment, frag2, 
+          to_print=None,
+          blocks_num=6
+          ):
+    
+    shape_dsc1 = fragment2shape_descriptor(palette, frag1)
+    shape_dsc2 = fragment2shape_descriptor(palette, frag2)
+    indices, pointer, score = align_two_fragments(
+        palette,
+        frag1, frag2,
+        to_print=to_print,
+        shape_descriptor1=shape_dsc1,
+        shape_descriptor2=shape_dsc2,
+    )
+    aligns = generate_multiple_alignments(pointer, score, shape_dsc1, shape_dsc2, blocks_num)
     return aligns
 
 def new_pairwise_alignment(palette, fragments: List, blocks_num=5) -> Tuple[List[ShapeDescriptor], Dict[Tuple[int, int], np.ndarray]]:

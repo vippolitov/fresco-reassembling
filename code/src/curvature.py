@@ -1,6 +1,6 @@
 import numpy as np
 
-from shape_utils import polygonize_edge
+from src.shape_utils import polygonize_edge
 
 def estimate_curvature(p0, p1, p2):
     """

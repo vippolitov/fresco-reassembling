@@ -4,7 +4,8 @@ import torch
 
 from dataclasses import dataclass
 from tqdm import tqdm 
-from utils import pad_fragment, pad_fragment_to_size, rotate_fragment, shift_fragment
+
+from src.utils import pad_fragment, pad_fragment_to_size, rotate_fragment, shift_fragment
 
 @dataclass
 class Translation:
@@ -12,6 +13,8 @@ class Translation:
     y: int
     angle: float
     confidence: float
+    geom_score: float
+        
     def __lt__(self, another):
         return self.confidence > another.confidence
     
@@ -163,7 +166,20 @@ def compute_new_content_score(frag1, frag2, features1, features2, resized_mask1,
     features_cross_corr = features_cov / np.sqrt((features1_masked ** 2).sum() * (features2_masked ** 2).sum() + eps)
     return features_cross_corr
 
-def match_two_aligned_fragments(frag1, frag2, list_of_initial_params, subcurves1, subcurves2, feature_extractor, beta=0.5, pad_size=200, verbose=1, eps=0.001):
+def geom_score_to_distance(geom_score, max_distance=30):
+    d = max_distance - (geom_score ** 3) * max_distance
+    return d if d != max_distance else max_distance * 2
+
+def filter_too_far_translations(translations):
+    if len(translations) == 0:
+        return translations
+    min_distance = min([geom_score_to_distance(t.geom_score) for t in translations])
+    filtered = [t for t in translations if geom_score_to_distance(t.geom_score) < 2 * min_distance]
+    print("Too far translations filtered out: {}".format(len(translations) - len(filtered)))
+    return filtered
+    
+
+def match_two_aligned_fragments(frag1, frag2, list_of_initial_params, subcurves1, subcurves2, feature_extractor=None, beta=2, pad_size=200, verbose=1, eps=0.001):
     """
     list_of_initial_params: list of (angle, x, y)
     frag1, frag2: Fragments
@@ -174,13 +190,16 @@ def match_two_aligned_fragments(frag1, frag2, list_of_initial_params, subcurves1
     padded_frag1 = pad_fragment_to_size(frag1, pad_size)
     padded_frag2 = pad_fragment_to_size(frag2, pad_size)
     
-    tensor1 = torch.tensor(padded_frag1.fragment, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0) / 255
-    features1 = feature_extractor(tensor1)
-    features1 = features1.squeeze(0).detach().numpy()
+    # tensor2 = torch.tensor(padded_frag2.extended_frag, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
+    # if tensor2.max() > 1:
+    #     tensor2 = tensor2 / 255
+    # features2 = feature_extractor(tensor2)
+    # features2 = features2.squeeze(0).detach().numpy()
     
     global_res = []
     
     for params_index, initial_params in enumerate(list_of_initial_params):
+        best_translation = None
         theta, x_initial, y_initial = initial_params
         print(f"theta = {theta}, x_initial = {x_initial}, y_initial = {y_initial}")
         subcurve1 = subcurves1[params_index]
@@ -188,45 +207,48 @@ def match_two_aligned_fragments(frag1, frag2, list_of_initial_params, subcurves1
         
         shifts = [(x, y) for x in range(x_initial - 30, x_initial + 31, 6) for y in range(y_initial - 30, y_initial + 31, 6)]
         for phi in np.arange(theta - 15, theta + 16, 5):
-#             if verbose == 1:
-#                 print(f"phi = {phi}, params_index = {params_index}")
-            rot_frag2 = rotate_fragment(padded_frag2, phi)
             rot_frag1 = rotate_fragment(padded_frag1, phi)
-            tensor2 = torch.tensor(rot_frag2.fragment, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0) / 255
-            features2 = feature_extractor(tensor2)
-            features2 = features2.squeeze(0).detach().numpy()
+            # tensor1 = torch.tensor(rot_frag1.extended_frag, dtype=torch.float32).permute(2, 0, 1).unsqueeze(0)
+            # if tensor1.max() > 1:
+            #     tensor1 = tensor1 / 255
+            # features1 = feature_extractor(tensor1)
+            # features1 = features1.squeeze(0).detach().numpy()
 
             good_shifts = []
             for (x, y) in tqdm(shifts) if verbose == 1 else shifts:
-                transformed2 = shift_fragment(rot_frag2, x, y) # TODO: fix x and y
                 transformed1 = shift_fragment(rot_frag1, x, y)
                 if check_possibility_of_translation(padded_frag2, transformed1):
                     geom_score = compute_fast_geom_morph_score(subcurve1, subcurve2, (phi, y, x), max_distance=50)
                     prob = geom_score
                     if prob > 0.5:
-                        if prob > 0.5:
-                            good_shifts.extend([(x_new, y_new) for x_new in range(x - 2, x + 3, 2) for y_new in range(y - 2, y + 3, 2)])
+                        good_shifts.extend([(x_new, y_new) for x_new in range(x - 2, x + 3, 2) for y_new in range(y - 2, y + 3, 2)])
             for (x, y) in tqdm(good_shifts) if verbose == 1 else good_shifts:
-                transformed2 = shift_fragment(rot_frag2, x, y) # TODO: fix x and y
                 transformed1 = shift_fragment(rot_frag1, x, y)
-#                 if check_possibility_of_translation(padded_frag1, transformed2):
                 if check_possibility_of_translation(padded_frag2, transformed1):
                     geom_score = compute_fast_geom_morph_score(subcurve1, subcurve2, (phi, y, x), max_distance=50)
                     prob = geom_score
-                    print("Translation is possible")
-                    print(f"geom_score = {geom_score}")
                     if prob > 0.5:
+#                         geom_score = (geom_score1 + geom_score2) / 2
 #                         content_score = compute_new_content_score(
-#                             padded_frag1, transformed2,
-#                             features1, features2,
-#                             padded_frag1.extended_mask, transformed2.extended_mask,
+#                             padded_frag2, transformed1,
+#                             features2, features1,
+#                             padded_frag2.extended_mask, transformed1.extended_mask,
 #                             (x, y)                        
 #                         )
                         content_score = compute_cross_correlation(padded_frag2, transformed1)
-                        print(f"content_score = {content_score}")
+                        if content_score < eps:
+                            content_score = eps
                         prob = (1 + beta) / (1 / (content_score) + beta * 1 / (geom_score + eps))
-                        trans = Translation(x, y, phi, prob)
-                        global_res.append(trans)
+                        trans = Translation(x, y, phi, prob, geom_score)
+                        if prob > 0.5:
+                            global_res.append(trans)
+                        if best_translation is None or best_translation.confidence < trans.confidence:
+                            pass
+#                             best_translation = trans
+        if best_translation is None:
+            continue
+        global_res.append(sorted(best_translation, reverse=True, key=lambda val: val.confidence)[:10])
             
-    filtered_res = nms(sorted(global_res, reverse=True, key=lambda val: val.confidence).copy())
-    return filtered_res[:4]
+    filtered_res = filter_too_far_translations(global_res)
+    filtered_res = nms(sorted(filtered_res, reverse=True, key=lambda val: val.confidence).copy())
+    return filtered_res

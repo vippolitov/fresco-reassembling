@@ -1,3 +1,6 @@
 code/lama/big-lama/models/*
 code/output/*
+code/src/__pycache__/*
+code/lama/__pycache__/*
 code/__pycache__/*
+code/.ipynb_checkpoints/*

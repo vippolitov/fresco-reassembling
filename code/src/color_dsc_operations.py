@@ -2,11 +2,12 @@ import numpy as np
 
 from skimage.io import imread
 from skimage.color import rgb2lab
-from color_descriptor import ColorDescriptor
-from utils import build_fragment_from_directory
-from quantization import get_colors_from_masked_image
 from tqdm import tqdm
 from typing import Dict
+
+from src.color_descriptor import ColorDescriptor
+from src.utils import build_fragment_from_directory
+from src.quantization import get_colors_from_masked_image
 
 
 def find_nearest(array: np.ndarray, value: np.ndarray) -> np.ndarray:

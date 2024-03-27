@@ -2,13 +2,13 @@
 import numpy as np
 import rdp
 
-from utils import Fragment
-
 from skimage.feature import canny
 from skimage.color import rgb2lab, lab2rgb
 from scipy.ndimage import center_of_mass
 from joblib import Parallel, delayed
 from typing import List
+
+from src.utils import Fragment
 
 class ShapeDescriptor:
     def __init__(self, color_edge, edge_coords, curvatures):

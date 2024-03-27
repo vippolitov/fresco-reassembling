@@ -1,9 +1,9 @@
-
-
 import numpy as np
 import torch
 import os
 import yaml
+import cv2 
+
 from omegaconf import OmegaConf
 from torch.utils.data._utils.collate import default_collate
 from lama.saicinpainting.evaluation.utils import move_to_device
@@ -82,3 +82,16 @@ def extend_image(img, mask, model):
             cur_res = cur_res[:orig_height, :orig_width]
 
     return cur_res
+
+def extend_fragment(fragment, mask, extended_mask, model):
+    """
+    fragment: np.array fragment to be extended
+    mask: np.array mask of the fragment
+    extended_mask: np.array mask of the extended fragment
+    model - model to be used for extending
+    return: np.array extended fragment
+    """
+    inv_mask = np.invert(mask.astype(bool))
+    inv_mask = cv2.dilate(inv_mask * 1.0, np.ones((3, 3)))[:, :, None].astype(bool)
+    extended = extend_image(fragment, inv_mask, model) * extended_mask
+    return extended

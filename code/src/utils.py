@@ -6,7 +6,7 @@ from skimage.transform import rotate
 from typing import Tuple
 from dataclasses import dataclass
 
-from color_descriptor import ColorDescriptor
+from src.color_descriptor import ColorDescriptor
 
 @dataclass
 class MaskPosition:
@@ -60,8 +60,8 @@ def build_fragment_from_directory(fragment_dir: str):
     return Fragment(
         imread(fragment_dir + '/frag.png'),
         imread(fragment_dir + '/extended_frag.png'),
-        imread(fragment_dir + '/mask.png'),
-        imread(fragment_dir + '/extended_mask.png'),
+        imread(fragment_dir + '/mask.png').astype(bool),
+        imread(fragment_dir + '/extended_mask.png').astype(bool),
         ColorDescriptor(
             np.load(fragment_dir + '/color_dsc_h.npy'),
             np.load(fragment_dir + '/color_dsc_b.npy'),
@@ -115,14 +115,37 @@ def pad_fragment(frag, size):
         np.pad(frag.extended_mask, ((pad_h, pad_h + 1 * (h % 2 != size % 2)), (pad_w, pad_w + 1 * (w % 2 != size % 2)), (0, 0))),
     )
 
-def rotate_fragment(frag, angle):
+
+def rotate_fragment(frag, angle, c=None):
+    """
+    fast rotate
+    TODO: add edge_coords rotation
+    """
     # TODO: rotate edge_coords
-    return Fragment(
-        rotate(frag.fragment, angle),
-        rotate(frag.extended_frag, angle),
-        rotate(frag.mask, angle),
-        rotate(frag.extended_mask, angle),
+    h, w = frag.fragment.shape[:2]
+    if c is None:
+        c = (w // 2, h // 2)
+    m = cv2.getRotationMatrix2D(center=c, angle=angle, scale=1.0)
+    fr = Fragment(
+        cv2.warpAffine(frag.fragment, M=m, dsize=(w, h)),
+        cv2.warpAffine(frag.extended_frag, M=m, dsize=(w, h)),
+        cv2.warpAffine(frag.mask * 255.0, M=m, dsize=(w, h)) == 255,
+        cv2.warpAffine(frag.extended_mask * 255.0, M=m, dsize=(w, h)) == 255
     )
+    if fr.fragment.max() > 1:
+        fr.fragment = fr.fragment / 255.0
+    if fr.extended_frag.max() > 1:
+        fr.extended_frag = fr.extended_frag / 255.0
+    return fr
+
+# def rotate_fragment(frag, angle):
+#     # TODO: rotate edge_coords
+#     return Fragment(
+#         rotate(frag.fragment, angle),
+#         rotate(frag.extended_frag, angle),
+#         rotate(frag.mask, angle),
+#         rotate(frag.extended_mask, angle),
+#     )
 
 def shift_fragment(frag, shift_x, shift_y):
     # TODO: shift edge_coords
