@@ -17,7 +17,7 @@ Code directory contains several notebooks with examples of code usage. Each note
   Example of found common edge of two fragments
 </p>
 <p align="center">
-  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_common_edge.png" with="800">
+  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_common_edge.png" width="700">
 </p>
 
 
@@ -25,5 +25,13 @@ Code directory contains several notebooks with examples of code usage. Each note
   Example of found alignment between two fragments
 </p>
 <p align="center">
-  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_refined.png" with="800">
+  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_refined.png" width="500">
+</p>
+
+
+<p align="center">
+  Example of triplet formed to filter pair matches without any other fragment to construct triplet
+</p>
+<p align="center">
+  <img src="https://github.com/Ippolitov2909/fresco-reassembling/blob/main/illustrations/example_triplet.png" width="500">
 </p>
