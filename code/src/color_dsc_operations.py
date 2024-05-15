@@ -54,8 +54,17 @@ def compute_color_dsc(mask_index, palette, img=None, data_dir = '../voronoi/exam
     ])
     return ColorDescriptor(h, b, np.sqrt(variances))
 
+# def collect_descriptors_from_dataset(dataset_dir: str, palette: np.array, n=128):
+#     return {i: build_fragment_from_directory(dataset_dir + f"/{i}").color_descriptor for i in tqdm(range(1,n))}
+
 def collect_descriptors_from_dataset(dataset_dir: str, palette: np.array, n=128):
-    return {i: build_fragment_from_directory(dataset_dir + f"/{i}").color_descriptor for i in tqdm(range(1,n))}
+    res = {}
+    for i in tqdm(range(1, n)):
+        try:
+            res[i] = build_fragment_from_directory(dataset_dir + f"/{i}").color_descriptor
+        except FileNotFoundError:
+            continue
+    return res
 
 def collect_descriptors_from_directory(palette, data_dir='../voronoi/example', n=128): # remove outdated
     img_name = 'fresco.jpg'
@@ -70,7 +79,9 @@ def collect_descriptors_from_directory(palette, data_dir='../voronoi/example', n
 def compute_dsc_distance(dsc1, dsc2):
     h1 = dsc1.h / dsc1.h.sum()
     h2 = dsc2.h / dsc2.h.sum()
-    hist_intersection = ((h1 + h2) / 2 * (1 - np.abs(h1 - h2))).sum()
+    # hist_intersection = ((h1 + h2) / 2 * (1 - np.abs(h1 - h2))).sum()
+    
+    hist_intersection = (np.minimum(h1, h2) / 2 * (1 - np.abs(h1 - h2) ** 2)).sum()
     
     return hist_intersection
 

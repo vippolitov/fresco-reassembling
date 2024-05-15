@@ -118,6 +118,7 @@ def check_if_two_fragments_are_too_far(frag1, frag2):
     """
     return True if two frags are too far from each other
     """
+    # TODO: rewrite ir with morph extending and checking its intersection
     center1 = center_of_mass(frag1.mask)
     center2 = center_of_mass(frag2.mask)
     start = (int(center1[0]), int(center1[1]))

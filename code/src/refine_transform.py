@@ -110,7 +110,7 @@ def match_fragments(frag1, frag2, initial_params, subcurve1, subcurve2):
     subcurve1, subcurve2: common subcurves from frag1 and frag2
     """
     theta, x_initial, y_initial = initial_params
-    print(theta, x_initial, y_initial)
+    # print(theta, x_initial, y_initial)
     size = max(max(frag1.mask.shape[0], frag1.mask.shape[1]), max(frag2.mask.shape[0], frag2.mask.shape[1]))
     padded_frag1 = pad_fragment(frag1, size)
     padded_frag2 = pad_fragment(frag2, size)
@@ -201,7 +201,7 @@ def match_two_aligned_fragments(frag1, frag2, list_of_initial_params, subcurves1
     for params_index, initial_params in enumerate(list_of_initial_params):
         best_translation = None
         theta, x_initial, y_initial = initial_params
-        print(f"theta = {theta}, x_initial = {x_initial}, y_initial = {y_initial}")
+        # print(f"theta = {theta}, x_initial = {x_initial}, y_initial = {y_initial}")
         subcurve1 = subcurves1[params_index]
         subcurve2 = subcurves2[params_index]
         

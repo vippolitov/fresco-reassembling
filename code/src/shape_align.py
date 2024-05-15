@@ -76,7 +76,7 @@ def compute_diag_score(curvs1, curvs2, seq1, seq2):
     """
     TODO: write docs about scores
     """
-    print("new diag score is estimated")
+    # print("new diag score is estimated")
 #     m, n = len(seq1), len(seq2)  # length of two sequences
 #     curv_diff = np.abs(curvs1[:, None] + curvs2[None, :])[:,:,0]
 #     curvs1_small = np.abs(curvs1) < 0.03
@@ -156,7 +156,7 @@ def compute_diag_score(curvs1, curvs2, seq1, seq2):
     
     return diag_score
 
-def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2):
+def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2, verbose=True):
     m, n = len(seq1), len(seq2)  # length of two sequences
     
     # Generate DP table and traceback path pointer matrix
@@ -170,7 +170,7 @@ def water(seq1, seq2, is_corner1, is_corner2, curvs1, curvs2):
     
     
     # Calculate DP table and mark pointers
-    for i in tqdm(range(1, m + 1)):
+    for i in tqdm(range(1, m + 1)) if verbose else range(1, m + 1):
         for j in range(1, n + 1):
             score_diagonal = score[i - 1, j - 1] + diag_score[i - 1, j - 1]
             
@@ -228,7 +228,7 @@ def fragments2shape_descriptors(palette, fragments: List) -> List[ShapeDescripto
     """
     return Parallel(n_jobs=-1)([delayed(fragment2shape_descriptor)(palette, f) for f in fragments])
 
-def align_two_fragments(palette, frag1, frag2, to_print=None, shape_descriptor1=None, shape_descriptor2=None):
+def align_two_fragments(palette, frag1, frag2, to_print=None, shape_descriptor1=None, shape_descriptor2=None, verbose=True):
     if to_print is not None:
         print(to_print)
     if shape_descriptor1 is None:
@@ -239,7 +239,7 @@ def align_two_fragments(palette, frag1, frag2, to_print=None, shape_descriptor1=
         shape_descriptor2 = fragment2shape_descriptor(palette, frag2)
     color_edge2 , curvs2 = shape_descriptor2.color_edge, shape_descriptor2.curvatures
 
-    return water(color_edge1, color_edge2[::-1], None, None, curvs1, curvs2[::-1])
+    return water(color_edge1, color_edge2[::-1], None, None, curvs1, curvs2[::-1], verbose=verbose)
 
 def pairwise_alignment(palette, fragments: List) -> Tuple[List[ShapeDescriptor], Dict[Tuple[int, int], np.ndarray]]:
     """Compute pairwise alignment between fragments.
@@ -361,9 +361,9 @@ def generate_multiple_alignments(pointer, score, dsc1, dsc2, blocks_num):
                 continue
             mse = estimate_max_squared_transformation_error(line1, line2, best_transform)
             aligns.append(Alignment(indices, mse))
-    print(len(aligns))
+    # print(len(aligns))
     aligns = alignment_nms(aligns, edge_coords1, edge_coords2)
-    print(len(aligns))
+    # print(len(aligns))
     return aligns
 
 def align_two_frags_with_multiple_aligns(

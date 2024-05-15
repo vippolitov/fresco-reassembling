@@ -12,7 +12,8 @@ from src.quantization import get_colors_from_masked_image
 from src.utils import MaskPosition
 
 class FragmentPreprocessor:
-    def __init__(self, ext_step=30, model_name="lama"):
+    def __init__(self, ext_step=30, model_name="lama", structure_elem_size=20):
+        self.structure_elem_size = structure_elem_size
         self.ext_step = ext_step
         if model_name:
             self.model = load_model()
@@ -57,7 +58,7 @@ class FragmentPreprocessor:
         mask = cv2.erode(mask[:, :, 0] * 1.0, np.ones((4, 4), np.uint8))[:,:,None].astype(bool)
         mask = self.leave_biggest_component(mask)[:, :, None].astype(bool)
         frag = fresco * mask
-        extended_mask = cv2.dilate(mask * 1.0, np.ones((20, 20)))[:, :, None].astype(bool)
+        extended_mask = cv2.dilate(mask * 1.0, np.ones((self.structure_elem_size, self.structure_elem_size)))[:, :, None].astype(bool)
         
         crop_params = self.find_crop_params(mask)
         frag = frag[crop_params.top:crop_params.bottom, crop_params.left:crop_params.right]
